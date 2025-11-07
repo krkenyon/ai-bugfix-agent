@@ -34,11 +34,20 @@ def run_tests_in_sandbox(
         # 1. Write candidate solution to solution.py
         with open(solution_path, "w", encoding="utf-8") as f:
             f.write(code)
-
-        # 2. Write tests to tests.py
+            
+         # 2. Prepend import and write tests to tests.py
+        tests_with_import = "from solution import *\n" + tests.lstrip()
         with open(tests_path, "w", encoding="utf-8") as f:
-            f.write(tests)
+            f.write(tests_with_import)
 
+        #  DEBUG PRINTS — show what’s being tested this iteration
+        #print("=" * 80)
+        #print(f"[SANDBOX] Running in {tmpdir}")
+        #print("--- solution.py ---")
+        #print(code)
+        #print("--- tests.py ---")
+        #print(tests_with_import)
+        #print("=" * 80)
         # 3. Optionally: define a tiny resource limiter (Unix only).
         # This is a light "safe-ish" sandbox: limits CPU time and memory.
         def _limit_resources():
