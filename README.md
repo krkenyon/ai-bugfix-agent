@@ -13,3 +13,7 @@ The agent uses:
 - Implement an LLM agent that repairs code autonomously
 - Evaluate on HumanEvalFix (Python subset or subsample)
 - Provide reproducible results and clear instructions
+
+### Data
+Place the HumanEvalFix JSONL (e.g., humanevalfixtests-python.jsonl) in `data/`.
+You can obtain it from the BigCode / HumanEvalFix release.
