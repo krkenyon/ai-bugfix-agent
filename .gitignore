@@ -1,0 +1,56 @@
+# --- Python build & cache ---
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+*.env
+
+# --- IDEs & editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+
+# --- Logs & checkpoints ---
+*.log
+*.out
+*.err
+logs/
+checkpoints/
+wandb/
+mlruns/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Results / generated data ---
+results/*.json
+results/*.txt
+tmp/
+temp/
+
+# --- Docker ---
+*.pid
+docker/*.log
+
+# --- Pytest cache ---
+.cache/
+.pytest_cache/
+
+# --- Misc ---
+*.bak
+*.tmp
