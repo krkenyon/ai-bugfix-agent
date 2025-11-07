@@ -1,3 +1,4 @@
+import re
 from typing import Dict, Any
 
 from langgraph.graph import StateGraph, END
@@ -5,6 +6,7 @@ from langgraph.graph import StateGraph, END
 from .config import AgentState
 from .model import BugFixModel
 from .tools import run_tests_in_sandbox
+
 
 
 def _state_from_dict(state: Dict[str, Any]) -> AgentState:

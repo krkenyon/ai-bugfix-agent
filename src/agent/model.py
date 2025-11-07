@@ -35,6 +35,72 @@ class BugFixModel:
             dtype=dtype,
         ).to(device)
 
+    def _looks_like_python_module(self, text: str) -> bool:
+        lines = [l for l in text.splitlines() if l.strip()]
+        if not lines:
+            return False
+        first = lines[0].lstrip()
+        return first.startswith(("def ", "class ", "import ", "from "))
+
+
+    def _clean_generation(self, raw: str) -> str:
+        text = raw.strip()
+
+        # 1) Remove any explicit <think>...</think> blocks (if closed)
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+
+        # 2) Remove stray opening/closing <think> tags and the line they are on
+        # (handles the case where model only outputs `<think>` with no closing tag)
+        text = re.sub(r"^<think>\s*\n?", "", text, flags=re.MULTILINE)
+        text = text.replace("</think>", "")
+
+        text = text.strip()
+
+        # 3) Prefer fenced code blocks if present
+        fence = re.search(r"```(?:python)?\s*([\s\S]*?)```", text)
+        if fence:
+            return fence.group(1).strip()
+
+        # 4) If there's any line that starts like real Python code,
+        #    cut everything before the first such line.
+        m = re.search(r"(?m)^\s*(def|class|from|import)\s", text)
+        if m:
+            text = text[m.start():]
+
+        # 5) Optionally trim trailing obvious prose:
+        #    stop when lines stop looking like code.
+        lines = text.splitlines()
+        code_lines = []
+        started = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            if not started:
+                if stripped.startswith(("def ", "class ", "import ", "from ")):
+                    started = True
+                    code_lines.append(line)
+                # else still skipping
+            else:
+                if stripped == "":
+                    code_lines.append(line)
+                    continue
+
+                if (
+                    stripped.startswith(("def ", "class ", "import ", "from ", "@", "#"))
+                    or line.startswith((" ", "\t"))  # indented code
+                ):
+                    code_lines.append(line)
+                else:
+                    # hit something that looks like prose → stop
+                    break
+
+        if code_lines:
+            text = "\n".join(code_lines).strip()
+
+        return text
+
+
     def generate(self, prompt: str, max_tokens: int = 512) -> str:
         # Format as chat for Qwen3
         messages = [{"role": "user", "content": prompt}]
@@ -42,6 +108,7 @@ class BugFixModel:
             messages,
             tokenize=False,
             add_generation_prompt=True,
+            enable_thinking=False,
         )
 
         inputs = self.tokenizer(
@@ -63,49 +130,20 @@ class BugFixModel:
 
         # 1) Keep only newly generated tokens (strip the prompt)
         gen_ids = outputs[0, inputs["input_ids"].shape[1]:]
-        text = self.tokenizer.decode(gen_ids, skip_special_tokens=True).strip()
+        raw = self.tokenizer.decode(gen_ids, skip_special_tokens=True).strip()
+        text = self._clean_generation(raw)
 
-        # 2) Drop any <think>...</think> sections
-        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+        # Debug (keep for now):
+        #full = self.tokenizer.decode(outputs[0], skip_special_tokens=False)
+        #print("=== FULL ===")
+        #print(full)
+        #print("=== RAW GEN ===")
+        #print(raw)
+        #print("=== CLEANED ===")
+        #print(text)
 
-        # 3) If there's a fenced code block, keep only its content
-        fence = re.search(r"```(?:python)?\s*([\s\S]*?)```", text)
-        if fence:
-            text = fence.group(1).strip()
-
-        # 4) From whatever remains, extract the first contiguous block of code
-        #    starting at a line that looks like Python, and stop when it turns into prose.
-        lines = text.splitlines()
-        code_lines = []
-        started = False
-
-        for line in lines:
-            stripped = line.strip()
-
-            if not started:
-                # Look for the first line that looks like real code
-                if stripped.startswith(("def ", "class ", "import ", "from ")):
-                    started = True
-                    code_lines.append(line)
-                # ignore everything until then
-            else:
-                # Once in code mode:
-                if stripped == "":
-                    # blank lines inside code are fine
-                    code_lines.append(line)
-                    continue
-
-                # Lines that still look like Python code are allowed
-                if (
-                    stripped.startswith(("def ", "class ", "import ", "from ", "@", "#"))
-                    or line.startswith((" ", "\t"))  # indented code
-                ):
-                    code_lines.append(line)
-                else:
-                    # As soon as it looks like natural language, stop.
-                    break
-
-        if code_lines:
-            text = "\n".join(code_lines).strip()
+        if not self._looks_like_python_module(text):
+            print("=== REJECTED: does not look like a Python module ===")
+            return ""
 
         return text
