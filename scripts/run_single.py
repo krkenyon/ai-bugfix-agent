@@ -1,5 +1,3 @@
-# scripts/run_single.py
-
 import argparse
 import sys
 from pathlib import Path
