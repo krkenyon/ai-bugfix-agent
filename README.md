@@ -167,7 +167,7 @@ Example format (replace with your actual numbers):
 
 | model               | num_tasks | pass@1 |
 |---------------------|-----------|--------|
-| qwen3-coder-0.6b    | 50        | XX.X%  |
+| qwen3-coder-0.6b    | 20        | 25.0%  |
 | qwen3-coder-0.6b    | 164       | YY.Y%  |
 
 Replace `XX.X%` / `YY.Y%` with the results from `run_benchmark.py`.  
