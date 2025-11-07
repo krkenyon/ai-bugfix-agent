@@ -14,7 +14,7 @@ class BugFixModel:
         self,
         model_name: str = DEFAULT_MODEL_NAME,
         device: str | None = None,
-        max_input_tokens: int = 2048,
+        max_input_tokens: int = 512,
     ):
         if device is None:
             # use GPU if available - much faster for inference

@@ -44,6 +44,22 @@ def build_agent_graph(model: BugFixModel | None = None, default_max_steps: int =
     if model is None:
         model = BugFixModel()
 
+    import re
+
+    def infer_required_functions(tests: str) -> list[str]:
+        names = set()
+
+        # From harness-style: check(has_close_elements)
+        for m in re.finditer(r"check\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)", tests):
+            names.add(m.group(1))
+
+        # From plain asserts: assert has_close_elements(
+        for m in re.finditer(r"assert\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(", tests):
+            names.add(m.group(1))
+
+        return sorted(names)
+
+
     # --- Node 1: LLM step ---
 
     def llm_step(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -54,6 +70,23 @@ def build_agent_graph(model: BugFixModel | None = None, default_max_steps: int =
 
         # Use last feedback message if any
         last_feedback = s.history[-1] if s.history else ""
+
+        # Show tests
+        tests = s.tests
+
+        required_funcs = infer_required_functions(tests)
+        required_clause = ""
+        if required_funcs:
+            fn_lines = "\n".join(f"- `{name}`" for name in required_funcs)
+            required_clause = f"""
+Required functions:
+{fn_lines}
+
+Rules:
+- You MUST define all of the required functions above.
+- Do NOT rename them.
+- Do NOT invent alternative entrypoints.
+""".strip()
 
         # Prompt: show current code + feedback; ask for ONLY corrected code
         prompt = f"""
@@ -69,6 +102,8 @@ Your task:
 - Do not include any explanations, comments, or markdown.
 - Do NOT wrap the code in ``` fences.
 - The output must be valid Python starting with a def or import.
+{("\n" + required_clause) if required_clause else ""}
+
 
 Current candidate code (or original buggy code):
 {current_code}
