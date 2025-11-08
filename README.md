@@ -163,16 +163,12 @@ The benchmark script will:
 
 ## 5. Results
 
-Example format (replace with your actual numbers):
-
 | model               | num_tasks | pass@1 |
 |---------------------|-----------|--------|
 | qwen3-coder-0.6b    | 20        | 25.0%  |
-| qwen3-coder-0.6b    | 164       | YY.Y%  |
+| qwen3-coder-0.6b    | 164       | N/A    |
 
-Replace `XX.X%` / `YY.Y%` with the results from `run_benchmark.py`.  
 Raw outputs and logs are stored in the `results/` directory.
-Not yet calculated
 
 ---
 
